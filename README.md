@@ -79,6 +79,16 @@ Default configuration:
 object OnVehicleClaim(BasePlayer player, BaseCombatEntity vehicle)
 ```
 
+#### OnVehicleUnclaim
+
+- Called when a player tries to relinquish ownership of a vehicle.
+- Returning `false` will prevent the default behavior.
+- Returning `null` will result in the default behavior.
+
+```csharp
+object OnVehicleUnclaim(BasePlayer player, BaseCombatEntity vehicle)
+```
+
 #### OnVehicleOwnershipChanged
 
 This hook is called when a player successfully claims or unclaims a vehicle. This allows other plugins to do things like update vehicle storage capacity based on the new owner.

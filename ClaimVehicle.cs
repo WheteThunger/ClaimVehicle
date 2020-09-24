@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Claim Vehicle Ownership", "WhiteThunder", "1.0.0")]
+    [Info("Claim Vehicle Ownership", "WhiteThunder", "1.1.0")]
     [Description("Allows players to claim ownership of unowned vehicles.")]
     internal class ClaimVehicle : CovalencePlugin
     {
@@ -95,7 +95,8 @@ namespace Oxide.Plugins
             BaseCombatEntity vehicle = null;
 
             if (!VerifySupportedVehicleFound(player, GetLookEntity(basePlayer), ref vehicle, ref perm) ||
-                !VerifyCurrentlyOwned(player, vehicle))
+                !VerifyCurrentlyOwned(player, vehicle) ||
+                UnclaimWasBlocked(basePlayer, vehicle))
                 return;
 
             ChangeVehicleOwnership(vehicle, 0);
@@ -109,7 +110,13 @@ namespace Oxide.Plugins
         private bool ClaimWasBlocked(BasePlayer player, BaseCombatEntity vehicle)
         {
             object hookResult = Interface.CallHook("OnVehicleClaim", player, vehicle);
-            return (hookResult is bool && (bool)hookResult == false);
+            return hookResult is bool && (bool)hookResult == false;
+        }
+
+        private bool UnclaimWasBlocked(BasePlayer player, BaseCombatEntity vehicle)
+        {
+            object hookResult = Interface.CallHook("OnVehicleUnclaim", player, vehicle);
+            return hookResult is bool && (bool)hookResult == false;
         }
 
         private bool VerifySupportedVehicleFound(IPlayer player, BaseEntity entity, ref BaseCombatEntity vehicle, ref string perm)
