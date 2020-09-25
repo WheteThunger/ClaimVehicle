@@ -11,6 +11,7 @@ By itself, "owning" a vehicle does nothing, but various plugins enable special f
 - [Vehicle Deployed Locks](https://umod.org/plugins/vehicle-deployed-locks) -- Allow players to deploy locks to only vehicles they own
 - [Portable Vehicles](https://umod.org/plugins/portable-vehicles) -- Allow players to pick up vehicles they own
 - [Larger Car Storage](https://umod.org/plugins/larger-car-storage) -- Increase the capacity of storage modules on modular cars owned by privileged players
+- [Modular Car Turrets](https://umod.org/plugins/modular-car-turrets) -- Increase the maximum number of turrets allowed on modular cars owned by privileged players
 
 ## Commands
 
