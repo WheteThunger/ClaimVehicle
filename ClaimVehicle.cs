@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Claim Vehicle Ownership", "WhiteThunder", "1.1.0")]
+    [Info("Claim Vehicle Ownership", "WhiteThunder", "1.1.1")]
     [Description("Allows players to claim ownership of unowned vehicles.")]
     internal class ClaimVehicle : CovalencePlugin
     {
@@ -121,7 +121,7 @@ namespace Oxide.Plugins
 
         private bool VerifySupportedVehicleFound(IPlayer player, BaseEntity entity, ref BaseCombatEntity vehicle, ref string perm)
         {
-            vehicle = GetSupportedVehicle(entity, ref perm);
+            vehicle = GetSupportedVehicle(entity, player.Object as BasePlayer, ref perm);
             if (vehicle != null) return true;
             ReplyToPlayer(player, "Generic.Error.NoSupportedVehicleFound");
             return false;
@@ -203,7 +203,7 @@ namespace Oxide.Plugins
             return false;
         }
 
-        private BaseCombatEntity GetSupportedVehicle(BaseEntity entity, ref string perm)
+        private BaseCombatEntity GetSupportedVehicle(BaseEntity entity, BasePlayer player, ref string perm)
         {
             var ch47 = entity as CH47Helicopter;
             if (!ReferenceEquals(ch47, null))
@@ -224,6 +224,13 @@ namespace Oxide.Plugins
             {
                 perm = Permission_Claim_RidableHorse;
                 return ridableHorse;
+            }
+
+            var hitchTrough = entity as HitchTrough;
+            if (!ReferenceEquals(hitchTrough, null))
+            {
+                perm = Permission_Claim_RidableHorse;
+                return GetClosestHorse(hitchTrough, player);
             }
 
             var sedan = entity as BasicCar;
@@ -285,6 +292,27 @@ namespace Oxide.Plugins
             }
 
             return null;
+        }
+
+        private RidableHorse GetClosestHorse(HitchTrough hitchTrough, BasePlayer player)
+        {
+            var closestDistance = 1000f;
+            RidableHorse closestHorse = null;
+
+            for (var i = 0; i < hitchTrough.hitchSpots.Length; i++)
+            {
+                var hitchSpot = hitchTrough.hitchSpots[i];
+                if (!hitchSpot.IsOccupied()) continue;
+
+                var distance = Vector3.Distance(player.transform.position, hitchSpot.spot.position);
+                if (distance < closestDistance)
+                {
+                    closestDistance = distance;
+                    closestHorse = hitchSpot.horse.Get(serverside: true) as RidableHorse;
+                }
+            }
+
+            return closestHorse;
         }
 
         private BaseEntity GetLookEntity(BasePlayer player)
