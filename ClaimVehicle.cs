@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Claim Vehicle Ownership", "WhiteThunder", "1.1.1")]
+    [Info("Claim Vehicle Ownership", "WhiteThunder", "1.2.0")]
     [Description("Allows players to claim ownership of unowned vehicles.")]
     internal class ClaimVehicle : CovalencePlugin
     {
@@ -27,7 +27,8 @@ namespace Oxide.Plugins
         private const string Permission_Claim_Rowboat = "claimvehicle.claim.rowboat";
         private const string Permission_Claim_ScrapHeli = "claimvehicle.claim.scraptransporthelicopter";
         private const string Permission_Claim_Sedan = "claimvehicle.claim.sedan";
-        
+        private const string Permission_Claim_Workcart = "claimvehicle.claim.workcart";
+
         private const string Permission_Unclaim = "claimvehicle.unclaim";
         private const string Permission_NoClaimCooldown = "claimvehicle.nocooldown";
 
@@ -49,6 +50,7 @@ namespace Oxide.Plugins
             permission.RegisterPermission(Permission_Claim_Rowboat, this);
             permission.RegisterPermission(Permission_Claim_ScrapHeli, this);
             permission.RegisterPermission(Permission_Claim_Sedan, this);
+            permission.RegisterPermission(Permission_Claim_Workcart, this);
 
             permission.RegisterPermission(Permission_Unclaim, this);
             permission.RegisterPermission(Permission_NoClaimCooldown, this);
@@ -289,6 +291,13 @@ namespace Oxide.Plugins
             {
                 perm = Permission_Claim_Rowboat;
                 return rowboat;
+            }
+
+            var workcart = entity as TrainEngine;
+            if (!ReferenceEquals(workcart, null))
+            {
+                perm = Permission_Claim_Workcart;
+                return workcart;
             }
 
             return null;
