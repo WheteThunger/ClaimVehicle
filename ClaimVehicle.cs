@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 using Oxide.Core;
 using Oxide.Core.Libraries.Covalence;
@@ -9,16 +10,17 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Claim Vehicle Ownership", "WhiteThunder", "1.2.0")]
+    [Info("Claim Vehicle Ownership", "WhiteThunder", "1.3.0")]
     [Description("Allows players to claim ownership of unowned vehicles.")]
     internal class ClaimVehicle : CovalencePlugin
     {
         #region Fields
 
-        private Configuration PluginConfig;
+        private Configuration _pluginConfig;
 
         private const string Permission_Claim_AllVehicles = "claimvehicle.claim.allvehicles";
         private const string Permission_Claim_Chinook = "claimvehicle.claim.chinook";
+        private const string Permission_Claim_DuoSub = "claimvehicle.claim.duosub";
         private const string Permission_Claim_HotAirBalloon = "claimvehicle.claim.hotairballoon";
         private const string Permission_Claim_MiniCopter = "claimvehicle.claim.minicopter";
         private const string Permission_Claim_ModularCar = "claimvehicle.claim.modularcar";
@@ -27,6 +29,7 @@ namespace Oxide.Plugins
         private const string Permission_Claim_Rowboat = "claimvehicle.claim.rowboat";
         private const string Permission_Claim_ScrapHeli = "claimvehicle.claim.scraptransporthelicopter";
         private const string Permission_Claim_Sedan = "claimvehicle.claim.sedan";
+        private const string Permission_Claim_SoloSub = "claimvehicle.claim.solosub";
         private const string Permission_Claim_Workcart = "claimvehicle.claim.workcart";
 
         private const string Permission_Unclaim = "claimvehicle.unclaim";
@@ -42,6 +45,7 @@ namespace Oxide.Plugins
         {
             permission.RegisterPermission(Permission_Claim_AllVehicles, this);
             permission.RegisterPermission(Permission_Claim_Chinook, this);
+            permission.RegisterPermission(Permission_Claim_DuoSub, this);
             permission.RegisterPermission(Permission_Claim_HotAirBalloon, this);
             permission.RegisterPermission(Permission_Claim_MiniCopter, this);
             permission.RegisterPermission(Permission_Claim_ModularCar, this);
@@ -50,12 +54,13 @@ namespace Oxide.Plugins
             permission.RegisterPermission(Permission_Claim_Rowboat, this);
             permission.RegisterPermission(Permission_Claim_ScrapHeli, this);
             permission.RegisterPermission(Permission_Claim_Sedan, this);
+            permission.RegisterPermission(Permission_Claim_SoloSub, this);
             permission.RegisterPermission(Permission_Claim_Workcart, this);
 
             permission.RegisterPermission(Permission_Unclaim, this);
             permission.RegisterPermission(Permission_NoClaimCooldown, this);
 
-            ClaimCooldowns = new CooldownManager(PluginConfig.ClaimCooldownSeconds);
+            ClaimCooldowns = new CooldownManager(_pluginConfig.ClaimCooldownSeconds);
         }
 
         #endregion
@@ -65,7 +70,8 @@ namespace Oxide.Plugins
         [Command("vclaim")]
         private void ClaimVehicleCommand(IPlayer player, string cmd, string[] args)
         {
-            if (player.IsServer) return;
+            if (player.IsServer)
+                return;
 
             var basePlayer = player.Object as BasePlayer;
             string perm = null;
@@ -90,7 +96,8 @@ namespace Oxide.Plugins
         [Command("vunclaim")]
         private void UnclaimVehicleCommand(IPlayer player, string cmd, string[] args)
         {
-            if (player.IsServer || !VerifyPermissionAny(player, Permission_Unclaim)) return;
+            if (player.IsServer || !VerifyPermissionAny(player, Permission_Unclaim))
+                return;
 
             var basePlayer = player.Object as BasePlayer;
             string perm = null;
@@ -124,7 +131,9 @@ namespace Oxide.Plugins
         private bool VerifySupportedVehicleFound(IPlayer player, BaseEntity entity, ref BaseCombatEntity vehicle, ref string perm)
         {
             vehicle = GetSupportedVehicle(entity, player.Object as BasePlayer, ref perm);
-            if (vehicle != null) return true;
+            if (vehicle != null)
+                return true;
+
             ReplyToPlayer(player, "Generic.Error.NoSupportedVehicleFound");
             return false;
         }
@@ -132,8 +141,10 @@ namespace Oxide.Plugins
         private bool VerifyPermissionAny(IPlayer player, params string[] permissionNames)
         {
             foreach (var perm in permissionNames)
+            {
                 if (permission.UserHasPermission(player.Id, perm))
                     return true;
+            }
 
             ReplyToPlayer(player, "Generic.Error.NoPermission");
             return false;
@@ -141,14 +152,17 @@ namespace Oxide.Plugins
 
         private bool VerifyVehicleIsNotDead(IPlayer player, BaseCombatEntity vehicle)
         {
-            if (!vehicle.IsDead()) return true;
+            if (!vehicle.IsDead())
+                return true;
+
             ReplyToPlayer(player, "Generic.Error.VehicleDead");
             return false;
         }
 
         private bool VerifyNotOwned(IPlayer player, BaseEntity vehicle)
         {
-            if (vehicle.OwnerID == 0) return true;
+            if (vehicle.OwnerID == 0)
+                return true;
 
             var basePlayer = player.Object as BasePlayer;
             if (vehicle.OwnerID == basePlayer.userID)
@@ -161,7 +175,8 @@ namespace Oxide.Plugins
 
         private bool VerifyOffCooldown(IPlayer player)
         {
-            if (player.HasPermission(Permission_NoClaimCooldown)) return true;
+            if (player.HasPermission(Permission_NoClaimCooldown))
+                return true;
 
             var basePlayer = player.Object as BasePlayer;
             var secondsRemaining = ClaimCooldowns.GetSecondsRemaining(basePlayer.userID);
@@ -170,12 +185,15 @@ namespace Oxide.Plugins
                 ReplyToPlayer(player, "Generic.Error.Cooldown", FormatDuration(secondsRemaining));
                 return false;
             }
+
             return true;
         }
 
         private bool VerifyCanBuild(IPlayer player)
         {
-            if ((player.Object as BasePlayer).CanBuild()) return true;
+            if ((player.Object as BasePlayer).CanBuild())
+                return true;
+
             ReplyToPlayer(player, "Generic.Error.BuildingBlocked");
             return false;
         }
@@ -184,7 +202,9 @@ namespace Oxide.Plugins
         {
             var basePlayer = player.Object as BasePlayer;
             var baseLock = vehicle.GetSlot(BaseEntity.Slot.Lock);
-            if (baseLock == null || baseLock.OwnerID == basePlayer.userID) return true;
+            if (baseLock == null || baseLock.OwnerID == basePlayer.userID)
+                return true;
+
             ReplyToPlayer(player, "Claim.Error.LockedByAnother");
             return false;
         }
@@ -192,7 +212,9 @@ namespace Oxide.Plugins
         private bool VerifyNotMounted(IPlayer player, BaseCombatEntity entity)
         {
             var vehicle = entity as BaseVehicle;
-            if (vehicle == null || !vehicle.AnyMounted()) return true;
+            if (vehicle == null || !vehicle.AnyMounted())
+                return true;
+
             ReplyToPlayer(player, "Claim.Error.Mounted");
             return false;
         }
@@ -200,7 +222,9 @@ namespace Oxide.Plugins
         private bool VerifyCurrentlyOwned(IPlayer player, BaseCombatEntity vehicle)
         {
             var basePlayer = player.Object as BasePlayer;
-            if (vehicle.OwnerID == basePlayer.userID) return true;
+            if (vehicle.OwnerID == basePlayer.userID)
+                return true;
+
             ReplyToPlayer(player, "Unclaim.Error.NotOwned");
             return false;
         }
@@ -263,7 +287,7 @@ namespace Oxide.Plugins
                 return carLift.carOccupant;
             }
 
-            // Must go before MiniCopter
+            // Must go before MiniCopter.
             var scrapHeli = entity as ScrapTransportHelicopter;
             if (!ReferenceEquals(scrapHeli, null))
             {
@@ -278,7 +302,7 @@ namespace Oxide.Plugins
                 return minicopter;
             }
 
-            // Must go before MotorRowboat
+            // Must go before MotorRowboat.
             var rhib = entity as RHIB;
             if (!ReferenceEquals(rhib, null))
             {
@@ -300,6 +324,21 @@ namespace Oxide.Plugins
                 return workcart;
             }
 
+            // Must go before BaseSubmarine.
+            var duoSub = entity as SubmarineDuo;
+            if (!ReferenceEquals(duoSub, null))
+            {
+                perm = Permission_Claim_DuoSub;
+                return duoSub;
+            }
+
+            var soloSub = entity as BaseSubmarine;
+            if (!ReferenceEquals(soloSub, null))
+            {
+                perm = Permission_Claim_SoloSub;
+                return soloSub;
+            }
+
             return null;
         }
 
@@ -311,7 +350,8 @@ namespace Oxide.Plugins
             for (var i = 0; i < hitchTrough.hitchSpots.Length; i++)
             {
                 var hitchSpot = hitchTrough.hitchSpots[i];
-                if (!hitchSpot.IsOccupied()) continue;
+                if (!hitchSpot.IsOccupied())
+                    continue;
 
                 var distance = Vector3.Distance(player.transform.position, hitchSpot.spot.position);
                 if (distance < closestDistance)
@@ -324,11 +364,12 @@ namespace Oxide.Plugins
             return closestHorse;
         }
 
-        private BaseEntity GetLookEntity(BasePlayer player)
+        private BaseEntity GetLookEntity(BasePlayer player, float maxDistance = 5)
         {
             RaycastHit hit;
-            if (!Physics.Raycast(player.eyes.HeadRay(), out hit, 5)) return null;
-            return hit.GetEntity();
+            return Physics.Raycast(player.eyes.HeadRay(), out hit, maxDistance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore)
+                ? hit.GetEntity()
+                : null;
         }
 
         private void ChangeVehicleOwnership(BaseCombatEntity vehicle, ulong userId)
@@ -363,55 +404,11 @@ namespace Oxide.Plugins
 
             public float GetSecondsRemaining(ulong userId)
             {
-                if (!CooldownMap.ContainsKey(userId)) return 0;
+                if (!CooldownMap.ContainsKey(userId))
+                    return 0;
+
                 return CooldownMap[userId] + CooldownDuration - Time.realtimeSinceStartup;
             }
-        }
-
-        #endregion
-
-        #region Configuration
-
-        internal class Configuration
-        {
-            [JsonProperty("ClaimCooldownSeconds")]
-            public float ClaimCooldownSeconds = 3600;
-
-            public string ToJson() => JsonConvert.SerializeObject(this);
-
-            public Dictionary<string, object> ToDictionary() => JsonConvert.DeserializeObject<Dictionary<string, object>>(ToJson());
-        }
-
-        protected override void LoadDefaultConfig() => PluginConfig = new Configuration();
-
-        protected override void LoadConfig()
-        {
-            base.LoadConfig();
-            try
-            {
-                PluginConfig = Config.ReadObject<Configuration>();
-                if (PluginConfig == null)
-                {
-                    throw new JsonException();
-                }
-
-                if (!PluginConfig.ToDictionary().Keys.SequenceEqual(Config.ToDictionary(x => x.Key, x => x.Value).Keys))
-                {
-                    LogWarning("Configuration appears to be outdated; updating and saving");
-                    SaveConfig();
-                }
-            }
-            catch
-            {
-                LogWarning($"Configuration file {Name}.json is invalid; using defaults");
-                LoadDefaultConfig();
-            }
-        }
-
-        protected override void SaveConfig()
-        {
-            Log($"Configuration changes saved to {Name}.json");
-            Config.WriteObject(PluginConfig, true);
         }
 
         #endregion
@@ -444,6 +441,124 @@ namespace Oxide.Plugins
                 ["Unclaim.Error.NotOwned"] = "Error: You do not own that vehicle.",
                 ["Unclaim.Success"] = "You no longer own that vehicle.",
             }, this, "en");
+        }
+
+        #endregion
+
+        #region Configuration
+
+        private class Configuration : SerializableConfiguration
+        {
+            [JsonProperty("ClaimCooldownSeconds")]
+            public float ClaimCooldownSeconds = 3600;
+        }
+
+        private Configuration GetDefaultConfig() => new Configuration();
+
+        #endregion
+
+        #region Configuration Boilerplate
+
+        private class SerializableConfiguration
+        {
+            public string ToJson() => JsonConvert.SerializeObject(this);
+
+            public Dictionary<string, object> ToDictionary() => JsonHelper.Deserialize(ToJson()) as Dictionary<string, object>;
+        }
+
+        private static class JsonHelper
+        {
+            public static object Deserialize(string json) => ToObject(JToken.Parse(json));
+
+            private static object ToObject(JToken token)
+            {
+                switch (token.Type)
+                {
+                    case JTokenType.Object:
+                        return token.Children<JProperty>()
+                                    .ToDictionary(prop => prop.Name,
+                                                  prop => ToObject(prop.Value));
+
+                    case JTokenType.Array:
+                        return token.Select(ToObject).ToList();
+
+                    default:
+                        return ((JValue)token).Value;
+                }
+            }
+        }
+
+        private bool MaybeUpdateConfig(SerializableConfiguration config)
+        {
+            var currentWithDefaults = config.ToDictionary();
+            var currentRaw = Config.ToDictionary(x => x.Key, x => x.Value);
+            return MaybeUpdateConfigDict(currentWithDefaults, currentRaw);
+        }
+
+        private bool MaybeUpdateConfigDict(Dictionary<string, object> currentWithDefaults, Dictionary<string, object> currentRaw)
+        {
+            bool changed = false;
+
+            foreach (var key in currentWithDefaults.Keys)
+            {
+                object currentRawValue;
+                if (currentRaw.TryGetValue(key, out currentRawValue))
+                {
+                    var defaultDictValue = currentWithDefaults[key] as Dictionary<string, object>;
+                    var currentDictValue = currentRawValue as Dictionary<string, object>;
+
+                    if (defaultDictValue != null)
+                    {
+                        if (currentDictValue == null)
+                        {
+                            currentRaw[key] = currentWithDefaults[key];
+                            changed = true;
+                        }
+                        else if (MaybeUpdateConfigDict(defaultDictValue, currentDictValue))
+                            changed = true;
+                    }
+                }
+                else
+                {
+                    currentRaw[key] = currentWithDefaults[key];
+                    changed = true;
+                }
+            }
+
+            return changed;
+        }
+
+        protected override void LoadDefaultConfig() => _pluginConfig = GetDefaultConfig();
+
+        protected override void LoadConfig()
+        {
+            base.LoadConfig();
+            try
+            {
+                _pluginConfig = Config.ReadObject<Configuration>();
+                if (_pluginConfig == null)
+                {
+                    throw new JsonException();
+                }
+
+                if (MaybeUpdateConfig(_pluginConfig))
+                {
+                    LogWarning("Configuration appears to be outdated; updating and saving");
+                    SaveConfig();
+                }
+            }
+            catch (Exception e)
+            {
+                LogError(e.Message);
+                LogWarning($"Configuration file {Name}.json is invalid; using defaults");
+                LoadDefaultConfig();
+            }
+        }
+
+        protected override void SaveConfig()
+        {
+            Log($"Configuration changes saved to {Name}.json");
+            Config.WriteObject(_pluginConfig, true);
         }
 
         #endregion

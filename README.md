@@ -1,22 +1,20 @@
-**Claim Vehicle Ownerhsip** allows players to claim ownership of unowned vehicles.
+## Features
 
-A vehicle is considered owned if its `OwnerID` property is set to a player's Steam ID. A vehicle is considered unowned if its `OwnerID` is 0. Many plugins that spawn vehicles for a player will set ownership, so this plugin is mostly useful for allowing players to claim vehicles that spawned randomly in the world or at NPC vendors.
+- Allows players to claim ownership of unowned vehicles
+- Allows players to relinquish ownership of a vehicle they own, so that another player can claim it
 
-Note: If you just want vehicles spawned at NPC vendors to be owned by the player that purchased them, you can accomplish that with the [Vehicle Vendor Options](https://umod.org/plugins/vehicle-vendor-options) plugin.
+## How it works
 
-## Plugins that consider vehicle ownership
-
-By itself, "owning" a vehicle does nothing, but various plugins enable special features for owned vehicles based on the permissions of the owner. Some examples:
+By itself, "owning" a vehicle does nothing. However, various plugins enable special features for owned vehicles based on the permissions of the owner. Some examples:
 - [Vehicle Decay Protection](https://umod.org/plugins/vehicle-decay-protection) -- Disable decay of vehicles owned by privileged players
 - [Vehicle Deployed Locks](https://umod.org/plugins/vehicle-deployed-locks) -- Allow players to deploy locks to only vehicles they own
 - [Portable Vehicles](https://umod.org/plugins/portable-vehicles) -- Allow players to pick up vehicles they own
 - [Larger Car Storage](https://umod.org/plugins/larger-car-storage) -- Increase the capacity of storage modules on modular cars owned by privileged players
 - [Modular Car Turrets](https://umod.org/plugins/modular-car-turrets) -- Increase the maximum number of turrets allowed on modular cars owned by privileged players
 
-## Commands
+A vehicle is considered owned if its `OwnerID` property is set to a player's Steam ID. A vehicle is considered unowned if its `OwnerID` is 0. Many plugins that spawn vehicles for a player will set ownership, so this plugin is mostly useful for allowing players to claim vehicles that spawned randomly in the world or at NPC vendors.
 
-- `vclaim` -- Claim ownership of the vehicle you are aiming at. It must be unowned, unmounted, and not have a lock deployed to it by another player. You must also not be building blocked.
-- `vunclaim` -- Relinquish ownership of the vehicle you are aiming at. You must already own it.
+Note: If you just want vehicles spawned at NPC vendors to be owned by the player that purchased them, you can accomplish that with the [Vehicle Vendor Options](https://umod.org/plugins/vehicle-vendor-options) plugin.
 
 ## Permissions
 
@@ -26,6 +24,7 @@ By itself, "owning" a vehicle does nothing, but various plugins enable special f
 
 Alternatively, you can grant permissions to claim vehicles by type:
 - `claimvehicle.claim.chinook`
+- `claimvehicle.claim.duosub`
 - `claimvehicle.claim.hotairballoon`
 - `claimvehicle.claim.minicopter`
 - `claimvehicle.claim.modularcar`
@@ -34,7 +33,13 @@ Alternatively, you can grant permissions to claim vehicles by type:
 - `claimvehicle.claim.rowboat`
 - `claimvehicle.claim.scraptransporthelicopter`
 - `claimvehicle.claim.sedan`
+- `claimvehicle.claim.solosub`
 - `claimvehicle.claim.workcart`
+
+## Commands
+
+- `vclaim` -- Claim ownership of the vehicle you are aiming at. It must be unowned, unmounted, and not have a lock deployed to it by another player. You must also not be building blocked.
+- `vunclaim` -- Relinquish ownership of the vehicle you are aiming at. You must already own it.
 
 ## Configuration
 
@@ -78,7 +83,7 @@ Default configuration:
 - Returning `null` will result in the default behavior.
 
 ```csharp
-object OnVehicleClaim(BasePlayer player, BaseCombatEntity vehicle)
+bool? OnVehicleClaim(BasePlayer player, BaseCombatEntity vehicle)
 ```
 
 #### OnVehicleUnclaim
@@ -88,7 +93,7 @@ object OnVehicleClaim(BasePlayer player, BaseCombatEntity vehicle)
 - Returning `null` will result in the default behavior.
 
 ```csharp
-object OnVehicleUnclaim(BasePlayer player, BaseCombatEntity vehicle)
+bool? OnVehicleUnclaim(BasePlayer player, BaseCombatEntity vehicle)
 ```
 
 #### OnVehicleOwnershipChanged
