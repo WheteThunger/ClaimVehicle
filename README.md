@@ -33,7 +33,9 @@ Alternatively, you can grant permissions to claim vehicles by type:
 - `claimvehicle.claim.rowboat`
 - `claimvehicle.claim.scraptransporthelicopter`
 - `claimvehicle.claim.sedan`
+- `claimvehicle.claim.snowmobile`
 - `claimvehicle.claim.solosub`
+- `claimvehicle.claim.tomaha`
 - `claimvehicle.claim.workcart`
 
 ## Commands
