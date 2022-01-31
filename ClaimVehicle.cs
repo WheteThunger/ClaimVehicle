@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Claim Vehicle Ownership", "WhiteThunder", "1.3.0")]
+    [Info("Claim Vehicle Ownership", "WhiteThunder", "1.4.0")]
     [Description("Allows players to claim ownership of unowned vehicles.")]
     internal class ClaimVehicle : CovalencePlugin
     {
@@ -29,11 +29,16 @@ namespace Oxide.Plugins
         private const string Permission_Claim_Rowboat = "claimvehicle.claim.rowboat";
         private const string Permission_Claim_ScrapHeli = "claimvehicle.claim.scraptransporthelicopter";
         private const string Permission_Claim_Sedan = "claimvehicle.claim.sedan";
+        private const string Permission_Claim_Snowmobile = "claimvehicle.claim.snowmobile";
         private const string Permission_Claim_SoloSub = "claimvehicle.claim.solosub";
+        private const string Permission_Claim_Tomaha = "claimvehicle.claim.tomaha";
         private const string Permission_Claim_Workcart = "claimvehicle.claim.workcart";
 
         private const string Permission_Unclaim = "claimvehicle.unclaim";
         private const string Permission_NoClaimCooldown = "claimvehicle.nocooldown";
+
+        private const string SnowmobileShortPrefabName = "snowmobile";
+        private const string TomahaShortPrefabName = "tomahasnowmobile";
 
         private CooldownManager ClaimCooldowns;
 
@@ -54,7 +59,9 @@ namespace Oxide.Plugins
             permission.RegisterPermission(Permission_Claim_Rowboat, this);
             permission.RegisterPermission(Permission_Claim_ScrapHeli, this);
             permission.RegisterPermission(Permission_Claim_Sedan, this);
+            permission.RegisterPermission(Permission_Claim_Snowmobile, this);
             permission.RegisterPermission(Permission_Claim_SoloSub, this);
+            permission.RegisterPermission(Permission_Claim_Tomaha, this);
             permission.RegisterPermission(Permission_Claim_Workcart, this);
 
             permission.RegisterPermission(Permission_Unclaim, this);
@@ -337,6 +344,21 @@ namespace Oxide.Plugins
             {
                 perm = Permission_Claim_SoloSub;
                 return soloSub;
+            }
+
+            var snowmobile = entity as Snowmobile;
+            if (!ReferenceEquals(snowmobile, null))
+            {
+                if (snowmobile.ShortPrefabName == SnowmobileShortPrefabName)
+                {
+                    perm = Permission_Claim_Snowmobile;
+                    return snowmobile;
+                }
+                if (snowmobile.ShortPrefabName == TomahaShortPrefabName)
+                {
+                    perm = Permission_Claim_Tomaha;
+                    return snowmobile;
+                }
             }
 
             return null;
