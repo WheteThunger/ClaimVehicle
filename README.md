@@ -85,7 +85,7 @@ Default configuration:
 - Returning `null` will result in the default behavior.
 
 ```csharp
-bool? OnVehicleClaim(BasePlayer player, BaseCombatEntity vehicle)
+object OnVehicleClaim(BasePlayer player, BaseCombatEntity vehicle)
 ```
 
 #### OnVehicleUnclaim
@@ -95,7 +95,7 @@ bool? OnVehicleClaim(BasePlayer player, BaseCombatEntity vehicle)
 - Returning `null` will result in the default behavior.
 
 ```csharp
-bool? OnVehicleUnclaim(BasePlayer player, BaseCombatEntity vehicle)
+object OnVehicleUnclaim(BasePlayer player, BaseCombatEntity vehicle)
 ```
 
 #### OnVehicleOwnershipChanged

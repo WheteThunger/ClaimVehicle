@@ -10,13 +10,13 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Claim Vehicle Ownership", "WhiteThunder", "1.4.0")]
+    [Info("Claim Vehicle", "WhiteThunder", "1.4.0")]
     [Description("Allows players to claim ownership of unowned vehicles.")]
     internal class ClaimVehicle : CovalencePlugin
     {
         #region Fields
 
-        private Configuration _pluginConfig;
+        private Configuration _config;
 
         private const string Permission_Claim_AllVehicles = "claimvehicle.claim.allvehicles";
         private const string Permission_Claim_Chinook = "claimvehicle.claim.chinook";
@@ -40,7 +40,7 @@ namespace Oxide.Plugins
         private const string SnowmobileShortPrefabName = "snowmobile";
         private const string TomahaShortPrefabName = "tomahasnowmobile";
 
-        private CooldownManager ClaimCooldowns;
+        private CooldownManager _cooldownManager;
 
         #endregion
 
@@ -48,6 +48,8 @@ namespace Oxide.Plugins
 
         private void Init()
         {
+            _cooldownManager = new CooldownManager(_config.ClaimCooldownSeconds);
+
             permission.RegisterPermission(Permission_Claim_AllVehicles, this);
             permission.RegisterPermission(Permission_Claim_Chinook, this);
             permission.RegisterPermission(Permission_Claim_DuoSub, this);
@@ -66,8 +68,28 @@ namespace Oxide.Plugins
 
             permission.RegisterPermission(Permission_Unclaim, this);
             permission.RegisterPermission(Permission_NoClaimCooldown, this);
+        }
 
-            ClaimCooldowns = new CooldownManager(_pluginConfig.ClaimCooldownSeconds);
+        #endregion
+
+        #region Exposed Hooks
+
+        private static class ExposedHooks
+        {
+            public static object OnVehicleClaim(BasePlayer player, BaseCombatEntity vehicle)
+            {
+                return Interface.CallHook("OnVehicleClaim", player, vehicle);
+            }
+
+            public static object OnVehicleUnclaim(BasePlayer player, BaseCombatEntity vehicle)
+            {
+                return Interface.CallHook("OnVehicleUnclaim", player, vehicle);
+            }
+
+            public static void OnVehicleOwnershipChanged(BaseCombatEntity vehicle)
+            {
+                Interface.CallHook("OnVehicleOwnershipChanged", vehicle);
+            }
         }
 
         #endregion
@@ -96,7 +118,7 @@ namespace Oxide.Plugins
                 return;
 
             ChangeVehicleOwnership(vehicle, basePlayer.userID);
-            ClaimCooldowns.UpdateLastUsedForPlayer(basePlayer.userID);
+            _cooldownManager.UpdateLastUsedForPlayer(basePlayer.userID);
             ReplyToPlayer(player, "Claim.Success");
         }
 
@@ -123,16 +145,57 @@ namespace Oxide.Plugins
 
         #region Helper Methods
 
-        private bool ClaimWasBlocked(BasePlayer player, BaseCombatEntity vehicle)
+        private static bool ClaimWasBlocked(BasePlayer player, BaseCombatEntity vehicle)
         {
-            object hookResult = Interface.CallHook("OnVehicleClaim", player, vehicle);
+            var hookResult = ExposedHooks.OnVehicleClaim(player, vehicle);
             return hookResult is bool && (bool)hookResult == false;
         }
 
-        private bool UnclaimWasBlocked(BasePlayer player, BaseCombatEntity vehicle)
+        private static bool UnclaimWasBlocked(BasePlayer player, BaseCombatEntity vehicle)
         {
-            object hookResult = Interface.CallHook("OnVehicleUnclaim", player, vehicle);
+            var hookResult = ExposedHooks.OnVehicleUnclaim(player, vehicle);
             return hookResult is bool && (bool)hookResult == false;
+        }
+
+        private static RidableHorse GetClosestHorse(HitchTrough hitchTrough, BasePlayer player)
+        {
+            var closestDistance = 1000f;
+            RidableHorse closestHorse = null;
+
+            for (var i = 0; i < hitchTrough.hitchSpots.Length; i++)
+            {
+                var hitchSpot = hitchTrough.hitchSpots[i];
+                if (!hitchSpot.IsOccupied())
+                    continue;
+
+                var distance = Vector3.Distance(player.transform.position, hitchSpot.spot.position);
+                if (distance < closestDistance)
+                {
+                    closestDistance = distance;
+                    closestHorse = hitchSpot.horse.Get(serverside: true) as RidableHorse;
+                }
+            }
+
+            return closestHorse;
+        }
+
+        private static BaseEntity GetLookEntity(BasePlayer player, float maxDistance = 5)
+        {
+            RaycastHit hit;
+            return Physics.Raycast(player.eyes.HeadRay(), out hit, maxDistance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore)
+                ? hit.GetEntity()
+                : null;
+        }
+
+        private static void ChangeVehicleOwnership(BaseCombatEntity vehicle, ulong userId)
+        {
+            vehicle.OwnerID = userId;
+            ExposedHooks.OnVehicleOwnershipChanged(vehicle);
+        }
+
+        private static string FormatDuration(double seconds)
+        {
+            return TimeSpan.FromSeconds(Math.Ceiling(seconds)).ToString("g");
         }
 
         private bool VerifySupportedVehicleFound(IPlayer player, BaseEntity entity, ref BaseCombatEntity vehicle, ref string perm)
@@ -173,9 +236,13 @@ namespace Oxide.Plugins
 
             var basePlayer = player.Object as BasePlayer;
             if (vehicle.OwnerID == basePlayer.userID)
+            {
                 ReplyToPlayer(player, "Claim.Error.AlreadyOwnedByYou");
+            }
             else
+            {
                 ReplyToPlayer(player, "Claim.Error.DifferentOwner");
+            }
 
             return false;
         }
@@ -186,7 +253,7 @@ namespace Oxide.Plugins
                 return true;
 
             var basePlayer = player.Object as BasePlayer;
-            var secondsRemaining = ClaimCooldowns.GetSecondsRemaining(basePlayer.userID);
+            var secondsRemaining = _cooldownManager.GetSecondsRemaining(basePlayer.userID);
             if (secondsRemaining > 0)
             {
                 ReplyToPlayer(player, "Generic.Error.Cooldown", FormatDuration(secondsRemaining));
@@ -364,49 +431,11 @@ namespace Oxide.Plugins
             return null;
         }
 
-        private RidableHorse GetClosestHorse(HitchTrough hitchTrough, BasePlayer player)
-        {
-            var closestDistance = 1000f;
-            RidableHorse closestHorse = null;
-
-            for (var i = 0; i < hitchTrough.hitchSpots.Length; i++)
-            {
-                var hitchSpot = hitchTrough.hitchSpots[i];
-                if (!hitchSpot.IsOccupied())
-                    continue;
-
-                var distance = Vector3.Distance(player.transform.position, hitchSpot.spot.position);
-                if (distance < closestDistance)
-                {
-                    closestDistance = distance;
-                    closestHorse = hitchSpot.horse.Get(serverside: true) as RidableHorse;
-                }
-            }
-
-            return closestHorse;
-        }
-
-        private BaseEntity GetLookEntity(BasePlayer player, float maxDistance = 5)
-        {
-            RaycastHit hit;
-            return Physics.Raycast(player.eyes.HeadRay(), out hit, maxDistance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore)
-                ? hit.GetEntity()
-                : null;
-        }
-
-        private void ChangeVehicleOwnership(BaseCombatEntity vehicle, ulong userId)
-        {
-            vehicle.OwnerID = userId;
-            Interface.CallHook("OnVehicleOwnershipChanged", vehicle);
-        }
-
-        private string FormatDuration(double seconds) => TimeSpan.FromSeconds(Math.Ceiling(seconds)).ToString("g");
-
         #endregion
 
         #region Helper Classes
 
-        internal class CooldownManager
+        private class CooldownManager
         {
             private readonly Dictionary<ulong, float> CooldownMap = new Dictionary<ulong, float>();
             private readonly float CooldownDuration;
@@ -435,40 +464,9 @@ namespace Oxide.Plugins
 
         #endregion
 
-        #region Localization
-
-        private void ReplyToPlayer(IPlayer player, string messageName, params object[] args) =>
-            player.Reply(string.Format(GetMessage(player, messageName), args));
-
-        private string GetMessage(IPlayer player, string messageName, params object[] args)
-        {
-            var message = lang.GetMessage(messageName, this, player.Id);
-            return args.Length > 0 ? string.Format(message, args) : message;
-        }
-
-        protected override void LoadDefaultMessages()
-        {
-            lang.RegisterMessages(new Dictionary<string, string>
-            {
-                ["Generic.Error.NoPermission"] = "You don't have permission to do that.",
-                ["Generic.Error.BuildingBlocked"] = "Error: Cannot do that while building blocked.",
-                ["Generic.Error.NoSupportedVehicleFound"] = "Error: No supported vehicle found.",
-                ["Generic.Error.VehicleDead"] = "Error: That vehicle is dead.",
-                ["Generic.Error.Cooldown"] = "Please wait <color=red>{0}</color> and try again.",
-                ["Claim.Error.AlreadyOwnedByYou"] = "You already own that vehicle.",
-                ["Claim.Error.DifferentOwner"] = "Error: Someone else already owns that vehicle.",
-                ["Claim.Error.LockedByAnother"] = "Error: Someone else placed a lock on that vehicle.",
-                ["Claim.Error.Mounted"] = "Error: That vehicle is currently occupied.",
-                ["Claim.Success"] = "You now own that vehicle.",
-                ["Unclaim.Error.NotOwned"] = "Error: You do not own that vehicle.",
-                ["Unclaim.Success"] = "You no longer own that vehicle.",
-            }, this, "en");
-        }
-
-        #endregion
-
         #region Configuration
 
+        [JsonObject(MemberSerialization.OptIn)]
         private class Configuration : SerializableConfiguration
         {
             [JsonProperty("ClaimCooldownSeconds")]
@@ -477,9 +475,7 @@ namespace Oxide.Plugins
 
         private Configuration GetDefaultConfig() => new Configuration();
 
-        #endregion
-
-        #region Configuration Boilerplate
+        #region Configuration Helpers
 
         private class SerializableConfiguration
         {
@@ -519,7 +515,7 @@ namespace Oxide.Plugins
 
         private bool MaybeUpdateConfigDict(Dictionary<string, object> currentWithDefaults, Dictionary<string, object> currentRaw)
         {
-            bool changed = false;
+            var changed = false;
 
             foreach (var key in currentWithDefaults.Keys)
             {
@@ -550,20 +546,20 @@ namespace Oxide.Plugins
             return changed;
         }
 
-        protected override void LoadDefaultConfig() => _pluginConfig = GetDefaultConfig();
+        protected override void LoadDefaultConfig() => _config = GetDefaultConfig();
 
         protected override void LoadConfig()
         {
             base.LoadConfig();
             try
             {
-                _pluginConfig = Config.ReadObject<Configuration>();
-                if (_pluginConfig == null)
+                _config = Config.ReadObject<Configuration>();
+                if (_config == null)
                 {
                     throw new JsonException();
                 }
 
-                if (MaybeUpdateConfig(_pluginConfig))
+                if (MaybeUpdateConfig(_config))
                 {
                     LogWarning("Configuration appears to be outdated; updating and saving");
                     SaveConfig();
@@ -580,7 +576,41 @@ namespace Oxide.Plugins
         protected override void SaveConfig()
         {
             Log($"Configuration changes saved to {Name}.json");
-            Config.WriteObject(_pluginConfig, true);
+            Config.WriteObject(_config, true);
+        }
+
+        #endregion
+
+        #endregion
+
+        #region Localization
+
+        private void ReplyToPlayer(IPlayer player, string messageName, params object[] args) =>
+            player.Reply(string.Format(GetMessage(player, messageName), args));
+
+        private string GetMessage(IPlayer player, string messageName, params object[] args)
+        {
+            var message = lang.GetMessage(messageName, this, player.Id);
+            return args.Length > 0 ? string.Format(message, args) : message;
+        }
+
+        protected override void LoadDefaultMessages()
+        {
+            lang.RegisterMessages(new Dictionary<string, string>
+            {
+                ["Generic.Error.NoPermission"] = "You don't have permission to do that.",
+                ["Generic.Error.BuildingBlocked"] = "Error: Cannot do that while building blocked.",
+                ["Generic.Error.NoSupportedVehicleFound"] = "Error: No supported vehicle found.",
+                ["Generic.Error.VehicleDead"] = "Error: That vehicle is dead.",
+                ["Generic.Error.Cooldown"] = "Please wait <color=red>{0}</color> and try again.",
+                ["Claim.Error.AlreadyOwnedByYou"] = "You already own that vehicle.",
+                ["Claim.Error.DifferentOwner"] = "Error: Someone else already owns that vehicle.",
+                ["Claim.Error.LockedByAnother"] = "Error: Someone else placed a lock on that vehicle.",
+                ["Claim.Error.Mounted"] = "Error: That vehicle is currently occupied.",
+                ["Claim.Success"] = "You now own that vehicle.",
+                ["Unclaim.Error.NotOwned"] = "Error: You do not own that vehicle.",
+                ["Unclaim.Success"] = "You no longer own that vehicle.",
+            }, this, "en");
         }
 
         #endregion
