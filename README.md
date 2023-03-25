@@ -22,10 +22,13 @@ Note: If you just want vehicles spawned at NPC vendors to be owned by the player
 - `claimvehicle.unclaim` -- Allows the player to relinquish ownership of a vehicle using the `vunclaim` command, so that someone else can claim it. This does *not* reset their cooldown.
 - `claimvehicle.nocooldown` -- Allows the player to claim vehicles with no cooldown.
 
-Alternatively, you can grant permissions to claim vehicles by type:
+As an alternative to the `claimvehicle.claim.allvehicles` permission, you can grant permissions to claim vehicles by type:
+
+- `claimvehicle.claim.caboose`
 - `claimvehicle.claim.chinook`
 - `claimvehicle.claim.duosub`
 - `claimvehicle.claim.hotairballoon`
+- `claimvehicle.claim.locomotive`
 - `claimvehicle.claim.minicopter`
 - `claimvehicle.claim.modularcar`
 - `claimvehicle.claim.rhib`
@@ -33,10 +36,16 @@ Alternatively, you can grant permissions to claim vehicles by type:
 - `claimvehicle.claim.rowboat`
 - `claimvehicle.claim.scraptransporthelicopter`
 - `claimvehicle.claim.sedan`
+- `claimvehicle.claim.sedanrail`
 - `claimvehicle.claim.snowmobile`
 - `claimvehicle.claim.solosub`
 - `claimvehicle.claim.tomaha`
+- `claimvehicle.claim.wagona`
+- `claimvehicle.claim.wagonb`
+- `claimvehicle.claim.wagonc`
 - `claimvehicle.claim.workcart`
+- `claimvehicle.claim.workcartaboveground`
+- `claimvehicle.claim.workcartcovered`
 
 ## Commands
 
@@ -80,28 +89,28 @@ Default configuration:
 
 #### OnVehicleClaim
 
-- Called when a player tries to claim a vehicle.
-- Returning `false` will prevent the default behavior.
-- Returning `null` will result in the default behavior.
-
 ```csharp
 object OnVehicleClaim(BasePlayer player, BaseCombatEntity vehicle)
 ```
 
-#### OnVehicleUnclaim
-
-- Called when a player tries to relinquish ownership of a vehicle.
+- Called when a player tries to claim a vehicle.
 - Returning `false` will prevent the default behavior.
 - Returning `null` will result in the default behavior.
+
+#### OnVehicleUnclaim
 
 ```csharp
 object OnVehicleUnclaim(BasePlayer player, BaseCombatEntity vehicle)
 ```
 
-#### OnVehicleOwnershipChanged
+- Called when a player tries to relinquish ownership of a vehicle.
+- Returning `false` will prevent the default behavior.
+- Returning `null` will result in the default behavior.
 
-This hook is called when a player successfully claims or unclaims a vehicle. This allows other plugins to do things like update vehicle storage capacity based on the new owner.
+#### OnVehicleOwnershipChanged
 
 ```csharp
 void OnVehicleOwnershipChanged(BaseCombatEntity vehicle)
 ```
+
+This hook is called when a player successfully claims or unclaims a vehicle. This allows other plugins to do things like update vehicle storage capacity based on the new owner.

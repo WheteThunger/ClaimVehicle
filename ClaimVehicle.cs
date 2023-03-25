@@ -1,6 +1,5 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Serialization;
 using Oxide.Core;
 using Oxide.Core.Libraries.Covalence;
 using System;
@@ -10,7 +9,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Claim Vehicle", "WhiteThunder", "1.4.0")]
+    [Info("Claim Vehicle", "WhiteThunder", "1.5.0")]
     [Description("Allows players to claim ownership of unowned vehicles.")]
     internal class ClaimVehicle : CovalencePlugin
     {
@@ -157,7 +156,7 @@ namespace Oxide.Plugins
             return closestHorse;
         }
 
-        private static BaseEntity GetLookEntity(BasePlayer player, float maxDistance = 5)
+        private static BaseEntity GetLookEntity(BasePlayer player, float maxDistance = 9)
         {
             RaycastHit hit;
             return Physics.Raycast(player.eyes.HeadRay(), out hit, maxDistance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore)
@@ -407,6 +406,11 @@ namespace Oxide.Plugins
             {
                 _allVehicles = new IVehicleInfo[]
                 {
+                    new VehicleInfo<TrainCar>
+                    {
+                        VehicleName = "caboose",
+                        PrefabPaths = new[] { "assets/content/vehicles/trains/caboose/traincaboose.entity.prefab" },
+                    },
                     new VehicleInfo<CH47Helicopter>
                     {
                         VehicleName = "chinook",
@@ -421,6 +425,11 @@ namespace Oxide.Plugins
                     {
                         VehicleName = "hotairballoon",
                         PrefabPaths = new[] { "assets/prefabs/deployable/hot air balloon/hotairballoon.prefab" },
+                    },
+                    new VehicleInfo<TrainEngine>
+                    {
+                        VehicleName = "locomotive",
+                        PrefabPaths = new[] { "assets/content/vehicles/trains/locomotive/locomotive.entity.prefab" },
                     },
                     new VehicleInfo<MiniCopter>
                     {
@@ -457,6 +466,11 @@ namespace Oxide.Plugins
                         VehicleName = "sedan",
                         PrefabPaths = new[] { "assets/content/vehicles/sedan_a/sedantest.entity.prefab" },
                     },
+                    new VehicleInfo<TrainEngine>
+                    {
+                        VehicleName = "sedanrail",
+                        PrefabPaths = new[] { "assets/content/vehicles/sedan_a/sedanrail.entity.prefab" },
+                    },
                     new VehicleInfo<Snowmobile>
                     {
                         VehicleName = "snowmobile",
@@ -472,10 +486,35 @@ namespace Oxide.Plugins
                         VehicleName = "tomaha",
                         PrefabPaths = new[] { "assets/content/vehicles/snowmobiles/tomahasnowmobile.prefab" },
                     },
+                    new VehicleInfo<TrainCar>
+                    {
+                        VehicleName = "wagona",
+                        PrefabPaths = new[] { "assets/content/vehicles/trains/wagons/trainwagona.entity.prefab" },
+                    },
+                    new VehicleInfo<TrainCar>
+                    {
+                        VehicleName = "wagonb",
+                        PrefabPaths = new[] { "assets/content/vehicles/trains/wagons/trainwagonb.entity.prefab" },
+                    },
+                    new VehicleInfo<TrainCar>
+                    {
+                        VehicleName = "wagonc",
+                        PrefabPaths = new[] { "assets/content/vehicles/trains/wagons/trainwagonc.entity.prefab" },
+                    },
                     new VehicleInfo<TrainEngine>
                     {
                         VehicleName = "workcart",
                         PrefabPaths = new[] { "assets/content/vehicles/trains/workcart/workcart.entity.prefab" },
+                    },
+                    new VehicleInfo<TrainEngine>
+                    {
+                        VehicleName = "workcartaboveground",
+                        PrefabPaths = new[] { "assets/content/vehicles/trains/workcart/workcart_aboveground.entity.prefab" },
+                    },
+                    new VehicleInfo<TrainEngine>
+                    {
+                        VehicleName = "workcartcovered",
+                        PrefabPaths = new[] { "assets/content/vehicles/trains/workcart/workcart_aboveground2.entity.prefab" },
                     },
                 };
 
