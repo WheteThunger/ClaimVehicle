@@ -18,29 +18,17 @@ namespace Oxide.Plugins
 
         private Configuration _config;
 
-        private const string Permission_Claim_AllVehicles = "claimvehicle.claim.allvehicles";
-        private const string Permission_Claim_Chinook = "claimvehicle.claim.chinook";
-        private const string Permission_Claim_DuoSub = "claimvehicle.claim.duosub";
-        private const string Permission_Claim_HotAirBalloon = "claimvehicle.claim.hotairballoon";
-        private const string Permission_Claim_MiniCopter = "claimvehicle.claim.minicopter";
-        private const string Permission_Claim_ModularCar = "claimvehicle.claim.modularcar";
-        private const string Permission_Claim_RHIB = "claimvehicle.claim.rhib";
-        private const string Permission_Claim_RidableHorse = "claimvehicle.claim.ridablehorse";
-        private const string Permission_Claim_Rowboat = "claimvehicle.claim.rowboat";
-        private const string Permission_Claim_ScrapHeli = "claimvehicle.claim.scraptransporthelicopter";
-        private const string Permission_Claim_Sedan = "claimvehicle.claim.sedan";
-        private const string Permission_Claim_Snowmobile = "claimvehicle.claim.snowmobile";
-        private const string Permission_Claim_SoloSub = "claimvehicle.claim.solosub";
-        private const string Permission_Claim_Tomaha = "claimvehicle.claim.tomaha";
-        private const string Permission_Claim_Workcart = "claimvehicle.claim.workcart";
-
         private const string Permission_Unclaim = "claimvehicle.unclaim";
         private const string Permission_NoClaimCooldown = "claimvehicle.nocooldown";
+        private const string Permission_Claim_AllVehicles = "claimvehicle.claim.allvehicles";
 
-        private const string SnowmobileShortPrefabName = "snowmobile";
-        private const string TomahaShortPrefabName = "tomahasnowmobile";
-
+        private readonly VehicleInfoManager _vehicleInfoManager;
         private CooldownManager _cooldownManager;
+
+        public ClaimVehicle()
+        {
+            _vehicleInfoManager = new VehicleInfoManager(this);
+        }
 
         #endregion
 
@@ -50,24 +38,14 @@ namespace Oxide.Plugins
         {
             _cooldownManager = new CooldownManager(_config.ClaimCooldownSeconds);
 
-            permission.RegisterPermission(Permission_Claim_AllVehicles, this);
-            permission.RegisterPermission(Permission_Claim_Chinook, this);
-            permission.RegisterPermission(Permission_Claim_DuoSub, this);
-            permission.RegisterPermission(Permission_Claim_HotAirBalloon, this);
-            permission.RegisterPermission(Permission_Claim_MiniCopter, this);
-            permission.RegisterPermission(Permission_Claim_ModularCar, this);
-            permission.RegisterPermission(Permission_Claim_RHIB, this);
-            permission.RegisterPermission(Permission_Claim_RidableHorse, this);
-            permission.RegisterPermission(Permission_Claim_Rowboat, this);
-            permission.RegisterPermission(Permission_Claim_ScrapHeli, this);
-            permission.RegisterPermission(Permission_Claim_Sedan, this);
-            permission.RegisterPermission(Permission_Claim_Snowmobile, this);
-            permission.RegisterPermission(Permission_Claim_SoloSub, this);
-            permission.RegisterPermission(Permission_Claim_Tomaha, this);
-            permission.RegisterPermission(Permission_Claim_Workcart, this);
-
             permission.RegisterPermission(Permission_Unclaim, this);
             permission.RegisterPermission(Permission_NoClaimCooldown, this);
+            permission.RegisterPermission(Permission_Claim_AllVehicles, this);
+        }
+
+        private void OnServerInitialized()
+        {
+            _vehicleInfoManager.OnServerInitialized();
         }
 
         #endregion
@@ -103,11 +81,11 @@ namespace Oxide.Plugins
                 return;
 
             var basePlayer = player.Object as BasePlayer;
-            string perm = null;
-            BaseCombatEntity vehicle = null;
+            BaseCombatEntity vehicle;
+            IVehicleInfo vehicleInfo;
 
-            if (!VerifySupportedVehicleFound(player, GetLookEntity(basePlayer), ref vehicle, ref perm) ||
-                !VerifyPermissionAny(player, Permission_Claim_AllVehicles, perm) ||
+            if (!VerifySupportedVehicleFound(player, basePlayer, GetLookEntity(basePlayer), out vehicle, out vehicleInfo) ||
+                !VerifyPermissionAny(player, Permission_Claim_AllVehicles, vehicleInfo.Permission) ||
                 !VerifyVehicleIsNotDead(player, vehicle) ||
                 !VerifyNotOwned(player, vehicle) ||
                 !VerifyOffCooldown(player) ||
@@ -129,10 +107,10 @@ namespace Oxide.Plugins
                 return;
 
             var basePlayer = player.Object as BasePlayer;
-            string perm = null;
-            BaseCombatEntity vehicle = null;
+            BaseCombatEntity vehicle;
+            IVehicleInfo vehicleInfo;
 
-            if (!VerifySupportedVehicleFound(player, GetLookEntity(basePlayer), ref vehicle, ref perm) ||
+            if (!VerifySupportedVehicleFound(player, basePlayer, GetLookEntity(basePlayer), out vehicle, out vehicleInfo) ||
                 !VerifyCurrentlyOwned(player, vehicle) ||
                 UnclaimWasBlocked(basePlayer, vehicle))
                 return;
@@ -159,7 +137,7 @@ namespace Oxide.Plugins
 
         private static RidableHorse GetClosestHorse(HitchTrough hitchTrough, BasePlayer player)
         {
-            var closestDistance = 1000f;
+            var closestDistance = float.MaxValue;
             RidableHorse closestHorse = null;
 
             for (var i = 0; i < hitchTrough.hitchSpots.Length; i++)
@@ -198,12 +176,50 @@ namespace Oxide.Plugins
             return TimeSpan.FromSeconds(Math.Ceiling(seconds)).ToString("g");
         }
 
-        private bool VerifySupportedVehicleFound(IPlayer player, BaseEntity entity, ref BaseCombatEntity vehicle, ref string perm)
+        private static string[] FindPrefabsOfType<T>() where T : BaseEntity
         {
-            vehicle = GetSupportedVehicle(entity, player.Object as BasePlayer, ref perm);
-            if (vehicle != null)
-                return true;
+            var prefabList = new List<string>();
 
+            foreach (var assetPath in GameManifest.Current.entities)
+            {
+                var entity = GameManager.server.FindPrefab(assetPath)?.GetComponent<T>();
+                if (entity == null)
+                    continue;
+
+                prefabList.Add(entity.PrefabName);
+            }
+
+            return prefabList.ToArray();
+        }
+
+        private static BaseCombatEntity GetAppropriateVehicle(BaseEntity entity, BasePlayer player)
+        {
+            var vehicleModule = entity as BaseVehicleModule;
+            if ((object)vehicleModule != null)
+                return vehicleModule.Vehicle;
+
+            var carLift = entity as ModularCarGarage;
+            if ((object)carLift != null)
+                return carLift.carOccupant;
+
+            var hitchTrough = entity as HitchTrough;
+            if ((object)hitchTrough != null)
+                return GetClosestHorse(hitchTrough, player);
+
+            return entity as BaseCombatEntity;
+        }
+
+        private bool VerifySupportedVehicleFound(IPlayer player, BasePlayer basePlayer, BaseEntity entity, out BaseCombatEntity vehicle, out IVehicleInfo vehicleInfo)
+        {
+            vehicle = GetAppropriateVehicle(entity, basePlayer);
+            if ((object)vehicle != null)
+            {
+                vehicleInfo = _vehicleInfoManager.GetVehicleInfo(vehicle);
+                if (vehicleInfo != null)
+                    return true;
+            }
+
+            vehicleInfo = null;
             ReplyToPlayer(player, "Generic.Error.NoSupportedVehicleFound");
             return false;
         }
@@ -303,134 +319,6 @@ namespace Oxide.Plugins
             return false;
         }
 
-        private BaseCombatEntity GetSupportedVehicle(BaseEntity entity, BasePlayer player, ref string perm)
-        {
-            var ch47 = entity as CH47Helicopter;
-            if (!ReferenceEquals(ch47, null))
-            {
-                perm = Permission_Claim_Chinook;
-                return ch47;
-            }
-
-            var hab = entity as HotAirBalloon;
-            if (!ReferenceEquals(hab, null))
-            {
-                perm = Permission_Claim_HotAirBalloon;
-                return hab;
-            }
-
-            var ridableHorse = entity as RidableHorse;
-            if (!ReferenceEquals(ridableHorse, null))
-            {
-                perm = Permission_Claim_RidableHorse;
-                return ridableHorse;
-            }
-
-            var hitchTrough = entity as HitchTrough;
-            if (!ReferenceEquals(hitchTrough, null))
-            {
-                perm = Permission_Claim_RidableHorse;
-                return GetClosestHorse(hitchTrough, player);
-            }
-
-            var sedan = entity as BasicCar;
-            if (!ReferenceEquals(sedan, null))
-            {
-                perm = Permission_Claim_Sedan;
-                return sedan;
-            }
-
-            var car = entity as ModularCar;
-            if (!ReferenceEquals(car, null))
-            {
-                perm = Permission_Claim_ModularCar;
-                return car;
-            }
-
-            var vehicleModule = entity as BaseVehicleModule;
-            if (!ReferenceEquals(vehicleModule, null))
-            {
-                perm = Permission_Claim_ModularCar;
-                return vehicleModule.Vehicle;
-            }
-
-            var carLift = entity as ModularCarGarage;
-            if (!ReferenceEquals(carLift, null))
-            {
-                perm = Permission_Claim_ModularCar;
-                return carLift.carOccupant;
-            }
-
-            // Must go before MiniCopter.
-            var scrapHeli = entity as ScrapTransportHelicopter;
-            if (!ReferenceEquals(scrapHeli, null))
-            {
-                perm = Permission_Claim_ScrapHeli;
-                return scrapHeli;
-            }
-
-            var minicopter = entity as MiniCopter;
-            if (!ReferenceEquals(minicopter, null))
-            {
-                perm = Permission_Claim_MiniCopter;
-                return minicopter;
-            }
-
-            // Must go before MotorRowboat.
-            var rhib = entity as RHIB;
-            if (!ReferenceEquals(rhib, null))
-            {
-                perm = Permission_Claim_RHIB;
-                return rhib;
-            }
-
-            var rowboat = entity as MotorRowboat;
-            if (!ReferenceEquals(rowboat, null))
-            {
-                perm = Permission_Claim_Rowboat;
-                return rowboat;
-            }
-
-            var workcart = entity as TrainEngine;
-            if (!ReferenceEquals(workcart, null))
-            {
-                perm = Permission_Claim_Workcart;
-                return workcart;
-            }
-
-            // Must go before BaseSubmarine.
-            var duoSub = entity as SubmarineDuo;
-            if (!ReferenceEquals(duoSub, null))
-            {
-                perm = Permission_Claim_DuoSub;
-                return duoSub;
-            }
-
-            var soloSub = entity as BaseSubmarine;
-            if (!ReferenceEquals(soloSub, null))
-            {
-                perm = Permission_Claim_SoloSub;
-                return soloSub;
-            }
-
-            var snowmobile = entity as Snowmobile;
-            if (!ReferenceEquals(snowmobile, null))
-            {
-                if (snowmobile.ShortPrefabName == SnowmobileShortPrefabName)
-                {
-                    perm = Permission_Claim_Snowmobile;
-                    return snowmobile;
-                }
-                if (snowmobile.ShortPrefabName == TomahaShortPrefabName)
-                {
-                    perm = Permission_Claim_Tomaha;
-                    return snowmobile;
-                }
-            }
-
-            return null;
-        }
-
         #endregion
 
         #region Helper Classes
@@ -447,10 +335,7 @@ namespace Oxide.Plugins
 
             public void UpdateLastUsedForPlayer(ulong userId)
             {
-                if (CooldownMap.ContainsKey(userId))
-                    CooldownMap[userId] = Time.realtimeSinceStartup;
-                else
-                    CooldownMap.Add(userId, Time.realtimeSinceStartup);
+                CooldownMap[userId] = Time.realtimeSinceStartup;
             }
 
             public float GetSecondsRemaining(ulong userId)
@@ -459,6 +344,158 @@ namespace Oxide.Plugins
                     return 0;
 
                 return CooldownMap[userId] + CooldownDuration - Time.realtimeSinceStartup;
+            }
+        }
+
+        private interface IVehicleInfo
+        {
+            uint[] PrefabIds { get; }
+            string Permission { get; }
+
+            void OnServerInitialized(ClaimVehicle plugin);
+            bool IsCorrectType(BaseEntity entity);
+        }
+
+        private class VehicleInfo<T> : IVehicleInfo where T : BaseEntity
+        {
+            public uint[] PrefabIds { get; private set; }
+            public string Permission { get; private set; }
+
+            public string VehicleName { get; set; }
+            public string[] PrefabPaths { get; set; }
+
+            public void OnServerInitialized(ClaimVehicle plugin)
+            {
+                Permission = $"{nameof(ClaimVehicle)}.claim.{VehicleName}".ToLower();
+                plugin.permission.RegisterPermission(Permission, plugin);
+
+                var prefabIds = new List<uint>(PrefabPaths.Length);
+
+                foreach (var prefabName in PrefabPaths)
+                {
+                    var prefab = GameManager.server.FindPrefab(prefabName)?.GetComponent<T>();
+                    if (prefab == null)
+                    {
+                        plugin.LogError($"Invalid or incorrect prefab. Please alert the plugin maintainer -- {prefabName}");
+                        continue;
+                    }
+
+                    prefabIds.Add(prefab.prefabID);
+                }
+
+                PrefabIds = prefabIds.ToArray();
+            }
+
+            public bool IsCorrectType(BaseEntity entity)
+            {
+                return entity is T;
+            }
+        }
+
+        private class VehicleInfoManager
+        {
+            private readonly ClaimVehicle _plugin;
+            private readonly Dictionary<uint, IVehicleInfo> _prefabIdToVehicleInfo = new Dictionary<uint, IVehicleInfo>();
+            private IVehicleInfo[] _allVehicles;
+
+            public VehicleInfoManager(ClaimVehicle plugin)
+            {
+                _plugin = plugin;
+            }
+
+            public void OnServerInitialized()
+            {
+                _allVehicles = new IVehicleInfo[]
+                {
+                    new VehicleInfo<CH47Helicopter>
+                    {
+                        VehicleName = "chinook",
+                        PrefabPaths = new[] { "assets/prefabs/npc/ch47/ch47.entity.prefab" },
+                    },
+                    new VehicleInfo<SubmarineDuo>
+                    {
+                        VehicleName = "duosub",
+                        PrefabPaths = new[] { "assets/content/vehicles/submarine/submarineduo.entity.prefab" },
+                    },
+                    new VehicleInfo<HotAirBalloon>
+                    {
+                        VehicleName = "hotairballoon",
+                        PrefabPaths = new[] { "assets/prefabs/deployable/hot air balloon/hotairballoon.prefab" },
+                    },
+                    new VehicleInfo<MiniCopter>
+                    {
+                        VehicleName = "minicopter",
+                        PrefabPaths = new[] { "assets/content/vehicles/minicopter/minicopter.entity.prefab" },
+                    },
+                    new VehicleInfo<ModularCar>
+                    {
+                        VehicleName = "modularcar",
+                        PrefabPaths = FindPrefabsOfType<ModularCar>(),
+                    },
+                    new VehicleInfo<RHIB>
+                    {
+                        VehicleName = "rhib",
+                        PrefabPaths = new[] { "assets/content/vehicles/boats/rhib/rhib.prefab" },
+                    },
+                    new VehicleInfo<RidableHorse>
+                    {
+                        VehicleName = "ridablehorse",
+                        PrefabPaths = new[] { "assets/rust.ai/nextai/testridablehorse.prefab" },
+                    },
+                    new VehicleInfo<MotorRowboat>
+                    {
+                        VehicleName = "rowboat",
+                        PrefabPaths = new[] { "assets/content/vehicles/boats/rowboat/rowboat.prefab" },
+                    },
+                    new VehicleInfo<ScrapTransportHelicopter>
+                    {
+                        VehicleName = "scraptransporthelicopter",
+                        PrefabPaths = new[] { "assets/content/vehicles/scrap heli carrier/scraptransporthelicopter.prefab" },
+                    },
+                    new VehicleInfo<BasicCar>
+                    {
+                        VehicleName = "sedan",
+                        PrefabPaths = new[] { "assets/content/vehicles/sedan_a/sedantest.entity.prefab" },
+                    },
+                    new VehicleInfo<Snowmobile>
+                    {
+                        VehicleName = "snowmobile",
+                        PrefabPaths = new[] { "assets/content/vehicles/snowmobiles/snowmobile.prefab" },
+                    },
+                    new VehicleInfo<BaseSubmarine>
+                    {
+                        VehicleName = "solosub",
+                        PrefabPaths = new[] { "assets/content/vehicles/submarine/submarinesolo.entity.prefab" },
+                    },
+                    new VehicleInfo<Snowmobile>
+                    {
+                        VehicleName = "tomaha",
+                        PrefabPaths = new[] { "assets/content/vehicles/snowmobiles/tomahasnowmobile.prefab" },
+                    },
+                    new VehicleInfo<TrainEngine>
+                    {
+                        VehicleName = "workcart",
+                        PrefabPaths = new[] { "assets/content/vehicles/trains/workcart/workcart.entity.prefab" },
+                    },
+                };
+
+                foreach (var vehicleInfo in _allVehicles)
+                {
+                    vehicleInfo.OnServerInitialized(_plugin);
+
+                    foreach (var prefabId in vehicleInfo.PrefabIds)
+                    {
+                        _prefabIdToVehicleInfo[prefabId] = vehicleInfo;
+                    }
+                }
+            }
+
+            public IVehicleInfo GetVehicleInfo(BaseEntity entity)
+            {
+                IVehicleInfo vehicleInfo;
+                return _prefabIdToVehicleInfo.TryGetValue(entity.prefabID, out vehicleInfo) && vehicleInfo.IsCorrectType(entity)
+                    ? vehicleInfo
+                    : null;
             }
         }
 
