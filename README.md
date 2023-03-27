@@ -10,7 +10,7 @@ By itself, "owning" a vehicle does nothing. However, various plugins enable spec
 - [Vehicle Deployed Locks](https://umod.org/plugins/vehicle-deployed-locks) -- Allow players to deploy locks to only vehicles they own
 - [Portable Vehicles](https://umod.org/plugins/portable-vehicles) -- Allow players to pick up vehicles they own
 - [Vehicle Storage](https://umod.org/plugins/vehicle-storage) -- Allows adding or increasing storage on vehicles owned by privileged players
-- [Modular Car Turrets](https://umod.org/plugins/modular-car-turrets) -- Increase the maximum number of turrets allowed on modular cars owned by privileged players
+- [Car Turrets](https://umod.org/plugins/car-turrets) -- Increase the maximum number of turrets allowed on modular cars owned by privileged players
 
 A vehicle is considered owned if its `OwnerID` property is set to a player's Steam ID. A vehicle is considered unowned if its `OwnerID` is 0. Many plugins that spawn vehicles for a player will set ownership, so this plugin is mostly useful for allowing players to claim vehicles that spawned randomly in the world or at NPC vendors.
 
