@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Claim Vehicle", "WhiteThunder", "1.5.0")]
+    [Info("Claim Vehicle", "WhiteThunder", "1.5.1")]
     [Description("Allows players to claim ownership of unowned vehicles.")]
     internal class ClaimVehicle : CovalencePlugin
     {
@@ -431,7 +431,7 @@ namespace Oxide.Plugins
                         VehicleName = "locomotive",
                         PrefabPaths = new[] { "assets/content/vehicles/trains/locomotive/locomotive.entity.prefab" },
                     },
-                    new VehicleInfo<MiniCopter>
+                    new VehicleInfo<Minicopter>
                     {
                         VehicleName = "minicopter",
                         PrefabPaths = new[] { "assets/content/vehicles/minicopter/minicopter.entity.prefab" },
