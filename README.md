@@ -24,6 +24,7 @@ Note: If you just want vehicles spawned at NPC vendors to be owned by the player
 
 As an alternative to the `claimvehicle.claim.allvehicles` permission, you can grant permissions to claim vehicles by type:
 
+- `claimvehicle.claim.attackhelicopter`
 - `claimvehicle.claim.caboose`
 - `claimvehicle.claim.chinook`
 - `claimvehicle.claim.duosub`
