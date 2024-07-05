@@ -32,6 +32,10 @@ As an alternative to the `claimvehicle.claim.allvehicles` permission, you can gr
 - `claimvehicle.claim.locomotive`
 - `claimvehicle.claim.minicopter`
 - `claimvehicle.claim.modularcar`
+- `claimvehicle.claim.motorbike.sidecar`
+- `claimvehicle.claim.motorbike`
+- `claimvehicle.claim.pedalbike`
+- `claimvehicle.claim.pedaltrike`
 - `claimvehicle.claim.rhib`
 - `claimvehicle.claim.ridablehorse`
 - `claimvehicle.claim.rowboat`
