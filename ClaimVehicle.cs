@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Claim Vehicle", "WhiteThunder", "1.7.0")]
+    [Info("Claim Vehicle", "WhiteThunder", "1.7.1")]
     [Description("Allows players to claim ownership of unowned vehicles.")]
     internal class ClaimVehicle : CovalencePlugin
     {
@@ -139,17 +139,19 @@ namespace Oxide.Plugins
             var closestDistance = float.MaxValue;
             RidableHorse closestHorse = null;
 
-            for (var i = 0; i < hitchTrough.hitchSpots.Length; i++)
+            foreach (var hitchSpot in hitchTrough.hitchSpots)
             {
-                var hitchSpot = hitchTrough.hitchSpots[i];
                 if (!hitchSpot.IsOccupied())
                     continue;
 
-                var distance = Vector3.Distance(player.transform.position, hitchSpot.spot.position);
+                var distance = Vector3.Distance(player.transform.position, hitchSpot.tr.position);
                 if (distance < closestDistance)
                 {
                     closestDistance = distance;
-                    closestHorse = hitchSpot.horse.Get(serverside: true) as RidableHorse;
+                    if (hitchSpot.hitchableEntRef.Get(serverside: true) is RidableHorse ridableHorse)
+                    {
+                        closestHorse = ridableHorse;
+                    }
                 }
             }
 
