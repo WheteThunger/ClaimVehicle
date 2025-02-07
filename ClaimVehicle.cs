@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Claim Vehicle", "WhiteThunder", "1.7.1")]
+    [Info("Claim Vehicle", "WhiteThunder", "1.7.2")]
     [Description("Allows players to claim ownership of unowned vehicles.")]
     internal class ClaimVehicle : CovalencePlugin
     {
@@ -134,10 +134,10 @@ namespace Oxide.Plugins
             return hookResult is bool && (bool)hookResult == false;
         }
 
-        private static RidableHorse GetClosestHorse(HitchTrough hitchTrough, BasePlayer player)
+        private static RidableHorse2 GetClosestHorse(HitchTrough hitchTrough, BasePlayer player)
         {
             var closestDistance = float.MaxValue;
-            RidableHorse closestHorse = null;
+            RidableHorse2 closestHorse = null;
 
             foreach (var hitchSpot in hitchTrough.hitchSpots)
             {
@@ -148,7 +148,7 @@ namespace Oxide.Plugins
                 if (distance < closestDistance)
                 {
                     closestDistance = distance;
-                    if (hitchSpot.hitchableEntRef.Get(serverside: true) is RidableHorse ridableHorse)
+                    if (hitchSpot.hitchableEntRef.Get(serverside: true) is RidableHorse2 ridableHorse)
                     {
                         closestHorse = ridableHorse;
                     }
@@ -473,10 +473,16 @@ namespace Oxide.Plugins
                         VehicleName = "rhib",
                         PrefabPaths = new[] { "assets/content/vehicles/boats/rhib/rhib.prefab" },
                     },
-                    new VehicleInfo<RidableHorse>
+                    // Using BaseVehicle since it's the closest base class of RidableHorse and RidableHorse2.
+                    new VehicleInfo<BaseVehicle>
                     {
                         VehicleName = "ridablehorse",
-                        PrefabPaths = new[] { "assets/rust.ai/nextai/testridablehorse.prefab" },
+                        PrefabPaths = new[]
+                        {
+                            "assets/content/vehicles/horse/ridablehorse2.prefab",
+                            "assets/content/vehicles/horse/_old/testridablehorse.prefab",
+                            "assets/rust.ai/nextai/testridablehorse.prefab",
+                        },
                     },
                     new VehicleInfo<MotorRowboat>
                     {
