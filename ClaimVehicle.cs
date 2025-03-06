@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Claim Vehicle", "WhiteThunder", "1.7.2")]
+    [Info("Claim Vehicle", "WhiteThunder", "1.7.3")]
     [Description("Allows players to claim ownership of unowned vehicles.")]
     internal class ClaimVehicle : CovalencePlugin
     {
@@ -481,7 +481,6 @@ namespace Oxide.Plugins
                         {
                             "assets/content/vehicles/horse/ridablehorse2.prefab",
                             "assets/content/vehicles/horse/_old/testridablehorse.prefab",
-                            "assets/rust.ai/nextai/testridablehorse.prefab",
                         },
                     },
                     new VehicleInfo<MotorRowboat>
