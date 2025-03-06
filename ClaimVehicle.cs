@@ -80,10 +80,8 @@ namespace Oxide.Plugins
                 return;
 
             var basePlayer = player.Object as BasePlayer;
-            BaseCombatEntity vehicle;
-            IVehicleInfo vehicleInfo;
 
-            if (!VerifySupportedVehicleFound(player, basePlayer, GetLookEntity(basePlayer), out vehicle, out vehicleInfo) ||
+            if (!VerifySupportedVehicleFound(player, basePlayer, GetLookEntity(basePlayer), out var vehicle, out var vehicleInfo) ||
                 !VerifyPermissionAny(player, Permission_Claim_AllVehicles, vehicleInfo.Permission) ||
                 !VerifyVehicleIsNotDead(player, vehicle) ||
                 !VerifyNotOwned(player, vehicle) ||
@@ -106,10 +104,8 @@ namespace Oxide.Plugins
                 return;
 
             var basePlayer = player.Object as BasePlayer;
-            BaseCombatEntity vehicle;
-            IVehicleInfo vehicleInfo;
 
-            if (!VerifySupportedVehicleFound(player, basePlayer, GetLookEntity(basePlayer), out vehicle, out vehicleInfo) ||
+            if (!VerifySupportedVehicleFound(player, basePlayer, GetLookEntity(basePlayer), out var vehicle, out _) ||
                 !VerifyCurrentlyOwned(player, vehicle) ||
                 UnclaimWasBlocked(basePlayer, vehicle))
                 return;
@@ -124,14 +120,12 @@ namespace Oxide.Plugins
 
         private static bool ClaimWasBlocked(BasePlayer player, BaseCombatEntity vehicle)
         {
-            var hookResult = ExposedHooks.OnVehicleClaim(player, vehicle);
-            return hookResult is bool && (bool)hookResult == false;
+            return ExposedHooks.OnVehicleClaim(player, vehicle) is false;
         }
 
         private static bool UnclaimWasBlocked(BasePlayer player, BaseCombatEntity vehicle)
         {
-            var hookResult = ExposedHooks.OnVehicleUnclaim(player, vehicle);
-            return hookResult is bool && (bool)hookResult == false;
+            return ExposedHooks.OnVehicleUnclaim(player, vehicle) is false;
         }
 
         private static RidableHorse2 GetClosestHorse(HitchTrough hitchTrough, BasePlayer player)
@@ -160,8 +154,7 @@ namespace Oxide.Plugins
 
         private static BaseEntity GetLookEntity(BasePlayer player, float maxDistance = 9)
         {
-            RaycastHit hit;
-            return Physics.Raycast(player.eyes.HeadRay(), out hit, maxDistance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore)
+            return Physics.Raycast(player.eyes.HeadRay(), out var hit, maxDistance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore)
                 ? hit.GetEntity()
                 : null;
         }
@@ -326,25 +319,24 @@ namespace Oxide.Plugins
 
         private class CooldownManager
         {
-            private readonly Dictionary<ulong, float> CooldownMap = new Dictionary<ulong, float>();
-            private readonly float CooldownDuration;
+            private readonly Dictionary<ulong, float> _cooldownMap = new();
+            private readonly float _cooldownDuration;
 
             public CooldownManager(float duration)
             {
-                CooldownDuration = duration;
+                _cooldownDuration = duration;
             }
 
             public void UpdateLastUsedForPlayer(ulong userId)
             {
-                CooldownMap[userId] = Time.realtimeSinceStartup;
+                _cooldownMap[userId] = Time.realtimeSinceStartup;
             }
 
             public float GetSecondsRemaining(ulong userId)
             {
-                if (!CooldownMap.ContainsKey(userId))
-                    return 0;
-
-                return CooldownMap[userId] + CooldownDuration - Time.realtimeSinceStartup;
+                return _cooldownMap.TryGetValue(userId, out var duration)
+                    ? duration + _cooldownDuration - Time.realtimeSinceStartup
+                    : 0;
             }
         }
 
@@ -396,7 +388,7 @@ namespace Oxide.Plugins
         private class VehicleInfoManager
         {
             private readonly ClaimVehicle _plugin;
-            private readonly Dictionary<uint, IVehicleInfo> _prefabIdToVehicleInfo = new Dictionary<uint, IVehicleInfo>();
+            private readonly Dictionary<uint, IVehicleInfo> _prefabIdToVehicleInfo = new();
             private IVehicleInfo[] _allVehicles;
 
             public VehicleInfoManager(ClaimVehicle plugin)
@@ -563,8 +555,7 @@ namespace Oxide.Plugins
 
             public IVehicleInfo GetVehicleInfo(BaseEntity entity)
             {
-                IVehicleInfo vehicleInfo;
-                return _prefabIdToVehicleInfo.TryGetValue(entity.prefabID, out vehicleInfo) && vehicleInfo.IsCorrectType(entity)
+                return _prefabIdToVehicleInfo.TryGetValue(entity.prefabID, out var vehicleInfo) && vehicleInfo.IsCorrectType(entity)
                     ? vehicleInfo
                     : null;
             }
@@ -581,7 +572,7 @@ namespace Oxide.Plugins
             public float ClaimCooldownSeconds = 3600;
         }
 
-        private Configuration GetDefaultConfig() => new Configuration();
+        private Configuration GetDefaultConfig() => new();
 
         #region Configuration Helpers
 
@@ -627,13 +618,10 @@ namespace Oxide.Plugins
 
             foreach (var key in currentWithDefaults.Keys)
             {
-                object currentRawValue;
-                if (currentRaw.TryGetValue(key, out currentRawValue))
+                if (currentRaw.TryGetValue(key, out var currentRawValue))
                 {
-                    var defaultDictValue = currentWithDefaults[key] as Dictionary<string, object>;
                     var currentDictValue = currentRawValue as Dictionary<string, object>;
-
-                    if (defaultDictValue != null)
+                    if (currentWithDefaults[key] is Dictionary<string, object> defaultDictValue)
                     {
                         if (currentDictValue == null)
                         {
@@ -641,7 +629,9 @@ namespace Oxide.Plugins
                             changed = true;
                         }
                         else if (MaybeUpdateConfigDict(defaultDictValue, currentDictValue))
+                        {
                             changed = true;
+                        }
                     }
                 }
                 else
