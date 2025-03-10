@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Claim Vehicle", "WhiteThunder", "1.7.3")]
+    [Info("Claim Vehicle", "WhiteThunder", "1.8.0")]
     [Description("Allows players to claim ownership of unowned vehicles.")]
     internal class ClaimVehicle : CovalencePlugin
     {
@@ -405,10 +405,25 @@ namespace Oxide.Plugins
                         VehicleName = "attackhelicopter",
                         PrefabPaths = new[] { "assets/content/vehicles/attackhelicopter/attackhelicopter.entity.prefab" },
                     },
+                    new VehicleInfo<Ballista>
+                    {
+                        VehicleName = "ballista",
+                        PrefabPaths = new[] { "assets/content/vehicles/siegeweapons/ballista/ballista.entity.prefab" },
+                    },
+                    new VehicleInfo<BatteringRam>
+                    {
+                        VehicleName = "batteringram",
+                        PrefabPaths = new[] { "assets/content/vehicles/siegeweapons/batteringram/batteringram.entity.prefab" },
+                    },
                     new VehicleInfo<TrainCar>
                     {
                         VehicleName = "caboose",
                         PrefabPaths = new[] { "assets/content/vehicles/trains/caboose/traincaboose.entity.prefab" },
+                    },
+                    new VehicleInfo<Catapult>
+                    {
+                        VehicleName = "catapult",
+                        PrefabPaths = new[] { "assets/content/vehicles/siegeweapons/catapult/catapult.entity.prefab" },
                     },
                     new VehicleInfo<CH47Helicopter>
                     {
@@ -494,6 +509,11 @@ namespace Oxide.Plugins
                     {
                         VehicleName = "sedanrail",
                         PrefabPaths = new[] { "assets/content/vehicles/sedan_a/sedanrail.entity.prefab" },
+                    },
+                    new VehicleInfo<SiegeTower>
+                    {
+                        VehicleName = "siegetower",
+                        PrefabPaths = new[] { "assets/content/vehicles/siegeweapons/siegetower/siegetower.entity.prefab" },
                     },
                     new VehicleInfo<Snowmobile>
                     {
