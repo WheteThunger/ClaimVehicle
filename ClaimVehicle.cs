@@ -35,6 +35,8 @@ namespace Oxide.Plugins
 
         private void Init()
         {
+            _config.Init(this);
+
             _cooldownManager = new CooldownManager(_config.ClaimCooldownSeconds);
 
             permission.RegisterPermission(Permission_Unclaim, this);
@@ -73,7 +75,6 @@ namespace Oxide.Plugins
 
         #region Commands
 
-        [Command("vclaim")]
         private void ClaimVehicleCommand(IPlayer player, string cmd, string[] args)
         {
             if (player.IsServer)
@@ -97,7 +98,6 @@ namespace Oxide.Plugins
             ReplyToPlayer(player, "Claim.Success");
         }
 
-        [Command("vunclaim")]
         private void UnclaimVehicleCommand(IPlayer player, string cmd, string[] args)
         {
             if (player.IsServer || !VerifyPermissionAny(player, Permission_Unclaim))
@@ -569,7 +569,22 @@ namespace Oxide.Plugins
         private class Configuration : SerializableConfiguration
         {
             [JsonProperty("ClaimCooldownSeconds")]
+            private float DeprecatedClaimCooldownSeconds { set => ClaimCooldownSeconds = value; }
+
+            [JsonProperty("Claim cooldown (seconds)")]
             public float ClaimCooldownSeconds = 3600;
+
+            [JsonProperty("Claim commands")]
+            public string[] ClaimCommands = { "vclaim" };
+
+            [JsonProperty("Unclaim commands")]
+            public string[] UnclaimCommands = { "vunclaim" };
+
+            public void Init(ClaimVehicle plugin)
+            {
+                plugin.AddCovalenceCommand(ClaimCommands, nameof(ClaimVehicleCommand));
+                plugin.AddCovalenceCommand(UnclaimCommands, nameof(UnclaimVehicleCommand));
+            }
         }
 
         private Configuration GetDefaultConfig() => new();

@@ -57,19 +57,29 @@ As an alternative to the `claimvehicle.claim.allvehicles` permission, you can gr
 - `vclaim` -- Claim ownership of the vehicle you are aiming at. It must be unowned, unmounted, and not have a lock deployed to it by another player. You must also not be building blocked.
 - `vunclaim` -- Relinquish ownership of the vehicle you are aiming at. You must already own it.
 
+Note: The above commands can be changed in the configuration. Additionally, you can define multiple commands to perform the same function in case players are accustomed to different commands from other servers.
+
 ## Configuration
 
 Default configuration:
 
 ```json
 {
-  "ClaimCooldownSeconds": 3600.0
+  "Claim cooldown (seconds)": 3600.0,
+  "Claim commands": [
+    "vclaim"
+  ],
+  "Unclaim commands": [
+    "vunclaim"
+  ]
 }
 ```
 
-- `ClaimCooldownSeconds` -- Determines how long a player must wait after claiming a vehicle before they can claim another.
+- `Claim cooldown (seconds)` -- Determines how long a player must wait after claiming a vehicle before they can claim another.
   - Caution: Before reducing this value, consider other plugins you are running and whether this will allow for griefing potential. For example, a low cooldown may enable players to go around the map and lock or pick up every vehicle they find.
   - Note: Cooldowns are lost on plugin reload (or server restart). Cooldown persistence can be implemented on request.
+- `Claim commands` -- Determines which commands can be used to claim vehicles.
+- `Unclaim commands` -- Determines which commands can be used to unclaim vehicles.
 
 ## Localization
 
