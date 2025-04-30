@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Claim Vehicle", "WhiteThunder", "1.8.0")]
+    [Info("Claim Vehicle", "WhiteThunder", "1.8.1")]
     [Description("Allows players to claim ownership of unowned vehicles.")]
     internal class ClaimVehicle : CovalencePlugin
     {
@@ -128,10 +128,10 @@ namespace Oxide.Plugins
             return ExposedHooks.OnVehicleUnclaim(player, vehicle) is false;
         }
 
-        private static RidableHorse2 GetClosestHorse(HitchTrough hitchTrough, BasePlayer player)
+        private static RidableHorse GetClosestHorse(HitchTrough hitchTrough, BasePlayer player)
         {
             var closestDistance = float.MaxValue;
-            RidableHorse2 closestHorse = null;
+            RidableHorse closestHorse = null;
 
             foreach (var hitchSpot in hitchTrough.hitchSpots)
             {
@@ -142,7 +142,7 @@ namespace Oxide.Plugins
                 if (distance < closestDistance)
                 {
                     closestDistance = distance;
-                    if (hitchSpot.hitchableEntRef.Get(serverside: true) is RidableHorse2 ridableHorse)
+                    if (hitchSpot.hitchableEntRef.Get(serverside: true) is RidableHorse ridableHorse)
                     {
                         closestHorse = ridableHorse;
                     }
@@ -480,15 +480,10 @@ namespace Oxide.Plugins
                         VehicleName = "rhib",
                         PrefabPaths = new[] { "assets/content/vehicles/boats/rhib/rhib.prefab" },
                     },
-                    // Using BaseVehicle since it's the closest base class of RidableHorse and RidableHorse2.
-                    new VehicleInfo<BaseVehicle>
+                    new VehicleInfo<RidableHorse>
                     {
                         VehicleName = "ridablehorse",
-                        PrefabPaths = new[]
-                        {
-                            "assets/content/vehicles/horse/ridablehorse2.prefab",
-                            "assets/content/vehicles/horse/_old/testridablehorse.prefab",
-                        },
+                        PrefabPaths = new[] { "assets/content/vehicles/horse/ridablehorse.prefab" },
                     },
                     new VehicleInfo<MotorRowboat>
                     {
